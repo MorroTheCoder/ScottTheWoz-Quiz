@@ -1,0 +1,377 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>The Scott The Woz Quiz</title>
+    <style>
+        :root {
+            --primary: #003399;
+            --secondary: #5d9cec;
+            --success: #4caf50;
+            --danger: #f44336;
+            --light: #f8f9fa;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #0e1217;
+            margin: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: #333;
+        }
+
+        #quiz-card {
+            background: white;
+            width: 95%;
+            max-width: 850px;
+            border-radius: 24px;
+            overflow: hidden;
+            box-shadow: 0 25px 50px rgba(0,0,0,0.6);
+            display: flex;
+            flex-direction: column;
+            margin: 20px;
+        }
+
+        .progress-container {
+            height: 8px;
+            background: #e0e0e0;
+            width: 100%;
+        }
+
+        #progress-bar {
+            height: 100%;
+            background: var(--secondary);
+            width: 0%;
+            transition: width 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        .header {
+            background: #fff;
+            padding: 25px 40px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-bottom: 1px solid #eee;
+        }
+
+        .content {
+            padding: 50px 60px;
+            text-align: center;
+            min-height: 350px;
+        }
+
+        #question-image {
+            max-width: 100%;
+            max-height: 300px;
+            border-radius: 12px;
+            margin-bottom: 30px;
+            display: none;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+        }
+
+        h2 {
+            font-size: 2rem;
+            margin: 0 0 15px 0;
+            color: #1a1a1a;
+        }
+
+        .instruction {
+            color: #888;
+            font-size: 1rem;
+            margin-bottom: 35px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            font-weight: bold;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 30px;
+        }
+
+        @media (max-width: 600px) {
+            .options-grid { grid-template-columns: 1fr; }
+            .content { padding: 30px; }
+        }
+
+        .option {
+            background: var(--light);
+            border: 2px solid #eee;
+            padding: 20px;
+            border-radius: 16px;
+            cursor: pointer;
+            font-size: 1.1rem;
+            font-weight: 500;
+            transition: all 0.2s ease;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .option:hover { border-color: var(--secondary); transform: translateY(-2px); }
+        .option.selected { border-color: var(--primary); background: #e0edff; }
+        .option.correct { background: var(--success) !important; color: white; border-color: #388e3c; }
+        .option.wrong { background: var(--danger) !important; color: white; border-color: #d32f2f; }
+
+        .sort-container { grid-column: 1 / -1; }
+        .sort-item {
+            background: white;
+            padding: 15px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 12px;
+            cursor: grab;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+        }
+
+        .footer {
+            padding: 0 40px 50px;
+            text-align: center;
+        }
+
+        .btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 18px 60px;
+            border-radius: 50px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: 0.3s;
+        }
+
+        .btn:hover { background: #002673; transform: scale(1.05); }
+        .hidden { display: none; }
+    </style>
+</head>
+<body>
+
+<div id="quiz-card">
+    <div class="progress-container"><div id="progress-bar"></div></div>
+    <div class="header">
+        <span id="q-count" style="font-weight: bold; color: var(--primary); font-size: 1.2rem;">Question 1</span>
+        <span id="score-count" style="font-weight: bold;">Score: 0</span>
+    </div>
+
+    <div class="content" id="main-content">
+        <img id="question-image" src="" alt="">
+        <h2 id="question-text">Loading...</h2>
+        <p id="instruction" class="instruction"></p>
+        <div id="options-area" class="options-grid"></div>
+    </div>
+
+    <div class="footer">
+        <button id="submit-btn" class="btn hidden">Submit Answer</button>
+        <button id="next-btn" class="btn hidden">Next Question</button>
+        <div id="results" class="hidden">
+            <h2 id="final-score"></h2>
+            <button class="btn" onclick="location.reload()">Restart Quiz</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    const questions = [
+        {
+            question: "What is the name of Scott's childhood cat?",
+            image: "dewey.jpg", 
+            type: "single",
+            answers: [{ text: "Dewey", correct: true }, { text: "Bob", correct: false }, { text: "Kitty", correct: false }, { text: "Mr. Meow", correct: false }]
+        },
+        {
+            question: "Select all YouTube channels owned by Scott:",
+            type: "multiple",
+            answers: [{ text: "Scott's Stash", correct: true }, { text: "WozniakNewsTV", correct: true }, { text: "Scott Loves BOTW", correct: false }, { text: "Scott the Woz Gaming", correct: false }]
+        },
+        {
+            question: "Drag the Madden games into the correct order on Scott's desk (Left to Right):",
+            type: "sortable",
+            correctOrder: [
+                "Madden 08 En Español (Xbox 360)", "Madden 08 En Español (PS2)", "08 Collection (PC)", "Madden 08 (PC)", "Madden 08 (Mac)", 
+                "Madden 08 (Xbox 360)", "Madden 08 (Xbox)", "Madden 08 (GameCube)", "Madden 08 (Wii)", "Madden 08 (PS3)", 
+                "Madden 08 (PSP)", "Madden 08 (DS)", "Madden 09 (DS)"
+            ]
+        },
+        {
+            question: "Which of these was NOT on the desk in 'Nintendo Switch: Wish List'?",
+            type: "multiple",
+            answers: [{ text: "Pepto Bismol", correct: true }, { text: "Hat", correct: false }, { text: "Ouya Controller", correct: true }, { text: "Camcorder", correct: false }]
+        },
+        {
+            question: "What would Scott see being on a SNES Classic in the 'Mini Wishlist' video?",
+            type: "single",
+            answers: [{ text: "Uniracers", correct: false }, { text: "Super Mario All-Stars", correct: false }, { text: "Chrono Trigger", correct: true }, { text: "Donkey Kong Country 3", correct: false }]
+        },
+        {
+            question: "Which of these games has Scott NOT confirmed he owns physically?",
+            type: "multiple",
+            answers: [{ text: "Forza Motorsport 3 (Xbox 360)", correct: false }, { text: "The Office (PC)", correct: false }, { text: "Cities: Skylines II (PC Physical)", correct: true }, { text: "Contra: Rogue Corps (Xbox One)", correct: true }]
+        },
+        {
+            question: "What is Scott's Roblox username?",
+            type: "single",
+            answers: [{ text: "ScattWaz", correct: false }, { text: "AnybodyLikeRoblox", correct: true }, { text: "ScottTheWoz", correct: false }, { text: "ScottManFun", correct: false }]
+        },
+        {
+            question: "What is Scott the Woz's Vimeo account?",
+            type: "single",
+            answers: [{ text: "WozniakNewsTV", correct: false }, { text: "Scott Wozniak", correct: false }, { text: "ScottManFun", correct: true }, { text: "ScottTheWoz", correct: false }]
+        },
+        {
+            question: "Which game convention is Scott the Woz iconic for attending annually?",
+            type: "single",
+            answers: [{ text: "PAX", correct: false }, { text: "TooManyGames", correct: true }, { text: "CES", correct: false }, { text: "Summer Game Fest", correct: false }]
+        },
+        {
+            question: "What episode is this screenshot from?",
+            image: "mario_party_3.jpg",
+            type: "single",
+            answers: [
+                { text: "Viral Games", correct: false },
+                { text: "Mario Party 3 | Party Harder", correct: true },
+                { text: "Wii U: Birth of a Death Part 1", correct: false },
+                { text: "Pro Consoles", correct: false }
+            ]
+        }
+    ];
+
+    let currentIdx = 0;
+    let score = 0;
+    let shuffled;
+
+    const qText = document.getElementById('question-text');
+    const qImg = document.getElementById('question-image');
+    const optionsArea = document.getElementById('options-area');
+    const instr = document.getElementById('instruction');
+    const subBtn = document.getElementById('submit-btn');
+    const nextBtn = document.getElementById('next-btn');
+
+    function start() {
+        shuffled = questions.sort(() => Math.random() - 0.5);
+        showQ();
+    }
+
+    function showQ() {
+        reset();
+        let q = shuffled[currentIdx];
+        qText.innerText = q.question;
+        document.getElementById('q-count').innerText = `Question ${currentIdx + 1} of ${shuffled.length}`;
+        document.getElementById('progress-bar').style.width = `${((currentIdx) / shuffled.length) * 100}%`;
+
+        if (q.image) { qImg.src = q.image; qImg.style.display = 'block'; }
+        else { qImg.style.display = 'none'; }
+
+        if (q.type === "sortable") {
+            optionsArea.classList.remove('options-grid');
+            instr.innerText = "DRAG AND DROP TO SORT";
+            renderSort(q.correctOrder);
+        } else {
+            optionsArea.classList.add('options-grid');
+            instr.innerText = q.type === "multiple" ? "SELECT ALL THAT APPLY" : "CHOOSE ONE";
+            q.answers.forEach(a => {
+                const div = document.createElement('div');
+                div.innerText = a.text;
+                div.classList.add('option');
+                if (a.correct) div.dataset.correct = "true";
+                div.onclick = () => {
+                    if (q.type === "multiple") { div.classList.toggle('selected'); subBtn.classList.remove('hidden'); }
+                    else { div.classList.add('selected'); check(div); }
+                };
+                optionsArea.appendChild(div);
+            });
+        }
+    }
+
+    function renderSort(items) {
+        const list = [...items].sort(() => Math.random() - 0.5);
+        const container = document.createElement('div');
+        container.classList.add('sort-container');
+        list.forEach(text => {
+            const d = document.createElement('div');
+            d.innerText = text;
+            d.classList.add('sort-item');
+            d.draggable = true;
+            d.addEventListener('dragstart', () => d.classList.add('dragging'));
+            d.addEventListener('dragend', () => d.classList.remove('dragging'));
+            container.appendChild(d);
+        });
+        container.addEventListener('dragover', e => {
+            e.preventDefault();
+            const drag = document.querySelector('.dragging');
+            const after = [...container.querySelectorAll('.sort-item:not(.dragging)')].find(s => e.clientY <= s.offsetTop + s.offsetHeight / 2);
+            container.insertBefore(drag, after);
+        });
+        optionsArea.appendChild(container);
+        subBtn.classList.remove('hidden');
+    }
+
+    function check(clicked) {
+        const q = shuffled[currentIdx];
+        let correct = false;
+        if (q.type === "single") {
+            correct = clicked.dataset.correct === "true";
+        } else if (q.type === "multiple") {
+            const opts = [...optionsArea.querySelectorAll('.option')];
+            correct = opts.every(o => (o.dataset.correct === "true") === o.classList.contains('selected'));
+        } else {
+            const current = [...optionsArea.querySelectorAll('.sort-item')].map(i => i.innerText);
+            correct = JSON.stringify(current) === JSON.stringify(q.correctOrder);
+        }
+
+        if (correct) score++;
+        document.getElementById('score-count').innerText = `Score: ${score}`;
+        reveal();
+    }
+
+    function reveal() {
+        subBtn.classList.add('hidden');
+        [...optionsArea.querySelectorAll('.option, .sort-item')].forEach(o => {
+            if (o.dataset.correct === "true") o.classList.add('correct');
+            else if (o.classList.contains('selected')) o.classList.add('wrong');
+            o.onclick = null;
+            o.draggable = false;
+        });
+        
+        // Only show Next Button if there are more questions
+        if (currentIdx < shuffled.length - 1) {
+            nextBtn.classList.remove('hidden');
+        } else {
+            // If it was the last question, wait a second then show results automatically
+            setTimeout(() => {
+                showFinalResults();
+            }, 1500);
+        }
+    }
+
+    function reset() {
+        nextBtn.classList.add('hidden');
+        subBtn.classList.add('hidden');
+        while (optionsArea.firstChild) optionsArea.removeChild(optionsArea.firstChild);
+    }
+
+    subBtn.onclick = () => check();
+    
+    nextBtn.onclick = () => {
+        currentIdx++;
+        showQ();
+    };
+
+    function showFinalResults() {
+        document.getElementById('main-content').classList.add('hidden');
+        document.getElementById('results').classList.remove('hidden');
+        document.getElementById('next-btn').classList.add('hidden'); // Ensure next btn is gone
+        document.getElementById('final-score').innerText = `TOTAL SCORE: ${score} / ${shuffled.length}`;
+        document.getElementById('progress-bar').style.width = "100%";
+    }
+
+    start();
+</script>
+</body>
+</html>
