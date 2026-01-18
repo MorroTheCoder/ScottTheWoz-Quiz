@@ -147,6 +147,13 @@
             transition: 0.3s;
         }
 
+        #rank-text {
+            font-size: 1.5rem;
+            color: var(--secondary);
+            font-weight: bold;
+            margin: 10px 0 30px 0;
+        }
+
         .btn:hover { background: #002673; transform: scale(1.05); }
         .hidden { display: none; }
     </style>
@@ -172,6 +179,7 @@
         <button id="next-btn" class="btn hidden">Next Question</button>
         <div id="results" class="hidden">
             <h2 id="final-score"></h2>
+            <p id="rank-text"></p>
             <button class="btn" onclick="location.reload()">Restart Quiz</button>
         </div>
     </div>
@@ -233,13 +241,41 @@
             question: "What episode is this screenshot from?",
             image: "mario_party_3.jpg",
             type: "single",
+            answers: [{ text: "Viral Games", correct: false }, { text: "Mario Party 3 | Party Harder", correct: true }, { text: "Wii U: Birth of a Death Part 1", correct: false }, { text: "Pro Consoles", correct: false }]
+        },
+        {
+            question: "Which of these videos is considered lost media?",
+            type: "single",
             answers: [
-                { text: "Viral Games", correct: false },
-                { text: "Mario Party 3 | Party Harder", correct: true },
-                { text: "Wii U: Birth of a Death Part 1", correct: false },
-                { text: "Pro Consoles", correct: false }
+                { text: "Going to the vape shop (Twitter cut)", correct: true },
+                { text: "Scott the Woz eats cereal", correct: false },
+                { text: "The Great Mysteries of Gaming", correct: false },
+                { text: "Wii U Retrospective Part 3", correct: false }
             ]
-        }
+        },
+        {
+            question: "Sort Scott's friends by their first appearance (Earliest to Latest):",
+            type: "sortable",
+            correctOrder: [
+                "Terry Lesler",
+                "Jerry Attricks",
+                "Officer Steel Wool",
+                "Wendy's Employee",
+                "Jeb Jab",
+                "Rex Mohs",
+                "Target Employee"
+            ]
+        },
+        {
+    question: "When does Robo Ebola reign supreme?",
+    type: "single",
+    answers: [
+        { text: "2017", correct: false },
+        { text: "2012", correct: false },
+        { text: "2027", correct: true },
+        { text: "Never", correct: false }
+    ]
+},
     ];
 
     let currentIdx = 0;
@@ -339,14 +375,10 @@
             o.draggable = false;
         });
         
-        // Only show Next Button if there are more questions
         if (currentIdx < shuffled.length - 1) {
             nextBtn.classList.remove('hidden');
         } else {
-            // If it was the last question, wait a second then show results automatically
-            setTimeout(() => {
-                showFinalResults();
-            }, 1500);
+            setTimeout(showFinalResults, 1500);
         }
     }
 
@@ -357,17 +389,22 @@
     }
 
     subBtn.onclick = () => check();
-    
-    nextBtn.onclick = () => {
-        currentIdx++;
-        showQ();
-    };
+    nextBtn.onclick = () => { currentIdx++; showQ(); };
 
     function showFinalResults() {
         document.getElementById('main-content').classList.add('hidden');
         document.getElementById('results').classList.remove('hidden');
-        document.getElementById('next-btn').classList.add('hidden'); // Ensure next btn is gone
         document.getElementById('final-score').innerText = `TOTAL SCORE: ${score} / ${shuffled.length}`;
+        
+        const rank = document.getElementById('rank-text');
+        const pct = (score / shuffled.length) * 100;
+        
+        if (pct === 100) rank.innerText = "Rank: Certified Virgin";
+        else if (pct >= 80) rank.innerText = "Rank: Resident Madden 08 Scholar";
+        else if (pct >= 50) rank.innerText = "Rank: Casual Blue Border Enjoyer";
+        else if (pct >= 20) rank.innerText = "Rank: Chibi-Robo! Zip Lash Fan";
+        else rank.innerText = "Rank: Labeled 'Not a RPG Fan'";
+        
         document.getElementById('progress-bar').style.width = "100%";
     }
 
